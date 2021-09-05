@@ -78,7 +78,7 @@ app.post('/sessions', async function (req, res, next) {
     }
 
     const { groupUri, groupId } = await ensureUserGroup(claims);
-    const { accountUri, accountId } = await ensureUserAndAccount(claims, groupId);
+    const { accountUri, accountId } = await ensureUserAndAccount(claims, { id: groupId, uri: groupUri });
 
     if (!groupUri || !groupId) {
       console.log(`User is not allowed to login. No user group found`);
