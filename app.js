@@ -1,4 +1,12 @@
 import { app, query, errorHandler } from 'mu';
+import { getSessionIdHeader } from './utils';
+import { getAccessTokenWithRetry } from './lib/openid';
+import {
+  removeOldSessions, removeCurrentSession,
+  ensureUserGroup, ensureUserAndAccount,
+  insertNewSessionForAccount,
+  selectAccountBySession, selectCurrentSession
+} from './lib/session';
 
 /**
  * Configuration validation on startup
@@ -37,6 +45,73 @@ requiredEnvironmentVariables.forEach(key => {
  * @return [403] If no user-group can be linked to the session
 */
 app.post('/sessions', async function (req, res, next) {
+  const sessionUri = getSessionIdHeader(req);
+  if (!sessionUri) {
+    const error = new Error('Session header is missing');
+    error.status = 400;
+    return next(error);
+  }
+
+  const authorizationCode = req.body['authorizationCode'];
+  if (!authorizationCode) {
+    const error = new Error('Authorization code is missing');
+    error.status = 400;
+    return next(error);
+  }
+
+  try {
+    let tokenSet;
+    try {
+      tokenSet = await getAccessTokenWithRetry(authorizationCode);
+    } catch (e) {
+      const error = new Error(`Failed to retrieve access token for authorization code: ${e.message || e}`);
+      error.status = 401;
+      return next(error);
+    }
+
+    await removeOldSessions(sessionUri);
+
+    const claims = tokenSet.claims();
+
+    if (process.env['DEBUG_LOG_TOKENSETS']) {
+      console.log(`Received tokenSet ${JSON.stringify(tokenSet)} including claims ${JSON.stringify(claims)}`);
+    }
+
+    const { groupUri, groupId } = await ensureUserGroup(claims);
+    const { accountUri, accountId } = await ensureUserAndAccount(claims, groupId);
+
+    if (!groupUri || !groupId) {
+      console.log(`User is not allowed to login. No user group found`);
+      return res.header('mu-auth-allowed-groups', 'CLEAR').status(403).end();
+    }
+
+    const { sessionId } = await insertNewSessionForAccount(accountUri, sessionUri, groupUri);
+
+    return res.header('mu-auth-allowed-groups', 'CLEAR').status(201).send({
+      links: {
+        self: '/sessions/current'
+      },
+      data: {
+        type: 'sessions',
+        id: sessionId,
+        attributes: {
+
+        }
+      },
+      relationships: {
+        account: {
+          links: { related: `/accounts/${accountId}` },
+          data: { type: 'accounts', id: accountId }
+        },
+        group: {
+          links: { related: `/user-groups/${groupId}` },
+          data: { type: 'user-groups', id: groupId }
+        }
+      }
+    });
+  } catch (e) {
+    return next(new Error(e.message));
+  }
 });
 
 
@@ -48,6 +123,27 @@ app.post('/sessions', async function (req, res, next) {
  * @return [400] If the session header is missing or invalid
 */
 app.delete('/sessions/current', async function (req, res, next) {
+  const sessionUri = getSessionIdHeader(req);
+  if (!sessionUri) {
+    const error = new Error('Session header is missing');
+    error.status = 400;
+    return next(error);
+  }
+
+  try {
+    const { accountUri } = await selectAccountBySession(sessionUri);
+    if (!accountUri) {
+      const error = new Error('Invalid session');
+      error.status = 400;
+      return next(error);
+    }
+
+    await removeCurrentSession(sessionUri);
+
+    return res.header('mu-auth-allowed-groups', 'CLEAR').status(204).end();
+  } catch (e) {
+    return next(new Error(e.message));
+  }
 });
 
 
@@ -58,6 +154,49 @@ app.delete('/sessions/current', async function (req, res, next) {
  * @return [400] If the session header is missing or invalid
 */
 app.get('/sessions/current', async function (req, res, next) {
+  const sessionUri = getSessionIdHeader(req);
+  if (!sessionUri) {
+    const error = new Error('Session header is missing');
+    error.status = 400;
+    return next(error);
+  }
+
+  try {
+    const { accountUri, accountId } = await selectAccountBySession(sessionUri);
+    if (!accountUri) {
+      const error = new Error('Invalid session');
+      error.status = 400;
+      return next(error);
+    }
+
+    const { sessionId, groupId } = await selectCurrentSession(accountUri);
+
+    return res.status(200).send({
+      links: {
+        self: '/sessions/current'
+      },
+      data: {
+        type: 'sessions',
+        id: sessionId,
+        attributes: {
+
+        }
+      },
+      relationships: {
+        account: {
+          links: { related: `/accounts/${accountId}` },
+          data: { type: 'accounts', id: accountId }
+        },
+        group: {
+          links: { related: `/user-groups/${groupId}` },
+          data: { type: 'user-groups', id: groupId }
+        }
+      }
+    });
+
+  } catch (e) {
+    return next(new Error(e.message));
+  }
 });
 
 
