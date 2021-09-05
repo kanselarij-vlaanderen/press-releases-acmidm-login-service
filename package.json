@@ -12,6 +12,7 @@
   "author": "redpencil.io",
   "license": "MIT",
   "dependencies": {
-    "@lblod/mu-auth-sudo": "^0.2.0"
+    "@lblod/mu-auth-sudo": "^0.2.0",
+    "openid-client": "^4.7.5"
   }
 }
