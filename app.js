@@ -1,6 +1,23 @@
 import { app, query, errorHandler } from 'mu';
 
 /**
+ * Configuration validation on startup
+ */
+const requiredEnvironmentVariables = [
+  'MU_APPLICATION_AUTH_DISCOVERY_URL',
+  'MU_APPLICATION_AUTH_CLIENT_ID',
+  'MU_APPLICATION_AUTH_CLIENT_SECRET',
+  'MU_APPLICATION_AUTH_REDIRECT_URI'
+];
+
+requiredEnvironmentVariables.forEach(key => {
+  if (!process.env[key]) {
+    console.log(`Environment variable ${key} must be configured`);
+    process.exit(1);
+  }
+});
+
+/**
  * Log the user in by creating a new session, i.e. attaching the user's
  * account to a session.
  *
