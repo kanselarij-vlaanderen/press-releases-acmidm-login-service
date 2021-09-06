@@ -47,7 +47,7 @@ The following enviroment variables can optionally be configured:
 * `DEBUG_LOG_TOKENSETS`: When set, received tokenSet information is logged to the console.
 
 
-## Available requests
+### API
 
 #### POST /sessions
 Log the user in by creating a new session, i.e. attaching the user's account to a session.
