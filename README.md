@@ -8,8 +8,14 @@ This service is greatly inspired by [lblod/acmidm-login-service](https://github.
 Add the following snippet to your `docker-compose.yml` to include the login service in your project.
 
 ```yaml
-login:
-  image: kanselarij/press-releases-acmidm-login-service
+services:
+  login:
+    image: kanselarij/press-releases-acmidm-login-service:0.1.0
+    environment:
+      MU_APPLICATION_AUTH_DISCOVERY_URL: "https://authenticatie-ti.vlaanderen.be/op"
+      MU_APPLICATION_AUTH_CLIENT_ID: "my-client-id"
+      MU_APPLICATION_AUTH_REDIRECT_URI: "https://VLIVIA-dev.vlaanderen.be/authorization/callback"
+      MU_APPLICATION_AUTH_CLIENT_SECRET: "THIS IS OUR SECRET"
 ```
 
 Add rules to the `dispatcher.ex` to dispatch requests to the login service. E.g.
