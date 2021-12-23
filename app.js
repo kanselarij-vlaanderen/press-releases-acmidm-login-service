@@ -56,6 +56,7 @@ app.post('/sessions', async function (req, res, next) {
   if (!authorizationCode) {
     const error = new Error('Authorization code is missing');
     error.status = 400;
+    console.log(`[${error.status}] ${error.message}`);
     return next(error);
   }
 
@@ -66,6 +67,7 @@ app.post('/sessions', async function (req, res, next) {
     } catch (e) {
       const error = new Error(`Failed to retrieve access token for authorization code: ${e.message || e}`);
       error.status = 401;
+      console.log(`[${error.status}] ${error.message}`);
       return next(error);
     }
 
@@ -110,6 +112,8 @@ app.post('/sessions', async function (req, res, next) {
       }
     });
   } catch (e) {
+    console.log(`Something went wrong during login: ${e.message}`);
+    console.trace(e);
     return next(new Error(e.message));
   }
 });
@@ -142,6 +146,8 @@ app.delete('/sessions/current', async function (req, res, next) {
 
     return res.header('mu-auth-allowed-groups', 'CLEAR').status(204).end();
   } catch (e) {
+    console.log(`Something went wrong during logout: ${e.message}`);
+    console.trace(e);
     return next(new Error(e.message));
   }
 });
@@ -195,6 +201,8 @@ app.get('/sessions/current', async function (req, res, next) {
     });
 
   } catch (e) {
+    console.log(`Something went wrong while retrieving the current session: ${e.message}`);
+    console.trace(e);
     return next(new Error(e.message));
   }
 });
