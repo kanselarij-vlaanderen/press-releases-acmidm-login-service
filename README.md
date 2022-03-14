@@ -10,7 +10,7 @@ Add the following snippet to your `docker-compose.yml` to include the login serv
 ```yaml
 services:
   login:
-    image: kanselarij/press-releases-acmidm-login-service:0.1.1
+    image: kanselarij/press-releases-acmidm-login-service:0.2.0
     environment:
       MU_APPLICATION_AUTH_DISCOVERY_URL: "https://authenticatie-ti.vlaanderen.be/op"
       MU_APPLICATION_AUTH_CLIENT_ID: "my-client-id"
